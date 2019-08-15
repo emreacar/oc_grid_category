@@ -1,0 +1,430 @@
+{{ header }}{{ column_left }}
+<div id="content">
+  <div class="page-header">
+    <div class="container-fluid">
+      <div class="pull-right">
+        <button type="button" onclick="gridManager.submit()" form="form-module" data-toggle="tooltip" title="{{ button_save }}" class="btn btn-primary"><i class="fa fa-save"></i></button>
+        <a href="{{ cancel }}" data-toggle="tooltip" title="{{ button_cancel }}" class="btn btn-default"><i class="fa fa-reply"></i></a></div>
+      <h1>{{ heading_title }}</h1>
+      <ul class="breadcrumb">
+        {% for breadcrumb in breadcrumbs %}
+        <li><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="container-fluid">
+    {% if error_warning %}
+    <div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> {{ error_warning }}
+      <button type="button" class="close" data-dismiss="alert">&times;</button>
+    </div>
+    {% endif %}
+
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title"><i class="fa fa-pencil"></i> {{ text_edit }}</h3>
+      </div>
+      <div class="panel-body">
+        <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-module" class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="input-name">{{ entry_name }}</label>
+            <div class="col-sm-10">
+              <input type="text" value="{{ name }}" placeholder="{{ entry_name }}" id="input-name" class="form-control" />
+              {% if error_name %}
+              <div class="text-danger">{{ error_name }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="input-status">{{ category_names }}</label>
+            <div class="col-sm-10">
+              <select id="input-showNames" class="form-control">
+                {% if show_names %}
+                <option value="1" selected="selected">{{ text_enabled }}</option>
+                <option value="0">{{ text_disabled }}</option>
+                {% else %}
+                <option value="1">{{ text_enabled }}</option>
+                <option value="0" selected="selected">{{ text_disabled }}</option>
+                {% endif %}
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="input-status">{{ entry_status }}</label>
+            <div class="col-sm-10">
+              <select id="input-status" class="form-control">
+                {% if status %}
+                <option value="1" selected="selected">{{ text_enabled }}</option>
+                <option value="0">{{ text_disabled }}</option>
+                {% else %}
+                <option value="1">{{ text_enabled }}</option>
+                <option value="0" selected="selected">{{ text_disabled }}</option>
+                {% endif %}
+              </select>
+            </div>
+          </div>
+
+          
+
+          <div class="row">
+
+            <div class="col-xs-12" id="gridDesigner"></div>
+
+            <div class="col-xs-12">
+                <button type="button" class="btn btn-sm btn-info" onclick="gridManager.addRow()">{{text_add_row}}</button>
+            </div>
+          </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<div class="modal fade" id="registerCat" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">{{text_select_cat}}</h4>
+      </div>
+      <div class="modal-body">
+        
+        <div class="row">
+          <div class="col-xs-12">
+            <div class="form-group">
+              <label class="col-sm-2 control-label" for="input-category"><span data-toggle="tooltip" title="{{ help_category }}">{{ entry_category }}</span></label>
+              <div class="col-sm-10">
+                <input type="text" name="category" value="" placeholder="{{ entry_category }}" id="input-category" class="form-control"/>
+                <div id="product-category" class="well well-sm" style="height: 150px; overflow: auto;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">{{text_close}}</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+{{ footer }}
+<script>
+    
+    class grid {
+        constructor() {
+            this.data = {{config|json_encode}};
+            this.post = {};
+            this.registerCat = {};
+            this.dom  = $('#gridDesigner');
+
+            this.view();
+        }
+
+        addRow(dataKey = -1, colKey = -1) {
+            
+          if(dataKey < 0) {
+            let dataKeys = Object.keys(this.data);
+
+            dataKey  = dataKeys.length == 0 ? 0 : parseInt(dataKeys[dataKeys.length - 1]) + 1;
+
+            this.data[dataKey] = {
+                title   : '',
+                columns : {}
+            }
+          }else{
+            let rows      = Object.keys(this.data[dataKey].columns[colKey].rows),
+                subRowKey = rows.length == 0 ? 0 : parseInt(rows[rows.length - 1]) + 1;
+            
+            this.data[dataKey].columns[colKey].rows[subRowKey] = {
+              columns : {}
+            }
+
+            this.data[dataKey].columns[colKey].type = 'row';
+
+          }
+            this.view();
+        }
+
+        setTitle(title, dataKey) {
+
+            this.data[dataKey].title = title;
+
+        }
+
+        removeRow(dataKey, colKey = -1, subRowKey = -1) {
+            
+            
+            if(colKey == -1) delete this.data[dataKey]
+            else delete this.data[dataKey].columns[colKey].rows[subRowKey]
+
+            this.view()
+        }
+
+        addCol(dataKey, colKey = -1, subRowKey = -1) {
+            
+          if(colKey == -1) {
+            let columns = Object.keys(this.data[dataKey].columns),
+                colKey  = columns.length == 0 ? 0 : parseInt(columns[columns.length - 1]) + 1;
+
+            this.data[dataKey].columns[colKey] = {
+                class : {xs : 12, sm : 6, md : 6},
+                type  : 'category',
+                categories : {},
+                rows : {}
+            }
+          }else{
+
+            let rows = Object.keys(this.data[dataKey].columns[colKey].rows[subRowKey].columns),
+                subColKey = rows.length == 0 ? 0 : parseInt(rows[rows.length - 1]) + 1;
+
+            this.data[dataKey].columns[colKey].rows[subRowKey].columns[subColKey] = {
+              class : {xs:12, sm:6, md:6},
+              type  : 'category',
+              categories : {}
+            }
+
+          }
+
+         this.view();
+        }
+
+        removeCol(dataKey, colKey, subRowKey = -1, subColKey = -1) {
+            if(subRowKey == -1) delete this.data[dataKey].columns[colKey];
+            else delete this.data[dataKey].columns[colKey].rows[subRowKey].columns[subColKey];
+
+            this.view();
+        }
+
+        changeColSize(size, unit, dataKey, colKey, subRowKey = -1, subColKey = -1) {
+          if(subRowKey < 0) this.data[dataKey].columns[colKey].class[unit] = size;
+          else this.data[dataKey].columns[colKey].rows[subRowKey].columns[subColKey].class[unit] = size;
+          
+          this.view();
+        }
+
+        registerCategory(dataKey, colKey, subRowKey = -1, subColKey = -1) {
+          this.registerCat.dataKey = dataKey;
+          this.registerCat.colKey  = colKey;
+          this.registerCat.subRowKey  = subRowKey;
+          this.registerCat.subColKey  = subColKey;
+
+          $('#product-category').html('');
+
+          if(subRowKey == -1) this.data[dataKey].columns[colKey].type = 'category';
+
+          var catList = this.data[dataKey].columns[colKey].categories;
+
+          if(subRowKey != -1)
+            catList = this.data[dataKey].columns[colKey].rows[subRowKey].columns[subColKey].categories;
+
+          for(var i of Object.keys(catList) ) {
+            var item = catList[i];
+            $('#product-category').append('<div id="product-category' + item.value + '" data-category="'+item.value+'"><i class="fa fa-minus-circle"></i> ' + item.label + '</div>');
+          }
+
+
+          $('#registerCat').modal('show');
+        }
+
+        setCategory(item) {
+
+          if(this.registerCat.subRowKey == -1)
+            this.data[this.registerCat.dataKey].columns[this.registerCat.colKey].categories[item.value] = item;
+          else
+            this.data[this.registerCat.dataKey].columns[this.registerCat.colKey].rows[this.registerCat.subRowKey].columns[this.registerCat.subColKey].categories[item.value] = item;
+            
+          this.view();
+        }
+
+        removeCategory(item_id) {
+          if(this.registerCat.subRowKey == -1)
+            delete this.data[this.registerCat.dataKey].columns[this.registerCat.colKey].categories[item_id];
+          else
+            delete this.data[this.registerCat.dataKey].columns[this.registerCat.colKey].rows[this.registerCat.subRowKey].columns[this.registerCat.subColKey].categories[item_id];
+
+          this.view()
+        }
+
+        view() {
+            this.dom.html('');
+            for (var dataKey of Object.keys(this.data) ) {
+                
+
+                /** create top wrapper **/
+                var template = '<div class="row" style="margin-left : 0; margin-right:0; margin-bottom : 20px; padding : 20px; border : 1px solid #e2e2e2;">'
+                +'<div class="col-xs-12">'
+                +'<div class="pull-right">'
+                +'<a class="btn btn-sm btn-warning" onclick="gridManager.addCol('+dataKey+')">{{text_addCol}}</a>'
+                +'<a class="btn btn-sm btn-danger" onclick="gridManager.removeRow('+dataKey+')">{{text_removeSection}}</a>'
+                +'</div>'
+                +'<div class="form-group"><label>{{text_row_title}}</label><input type="text" value="'+this.data[dataKey].title+'" onkeyup="gridManager.setTitle(this.value, '+dataKey+')" class="form-control form-control-sm" /></div>';
+                +'<div class="row section_cols">';
+                
+                for( var colKey of Object.keys(this.data[dataKey].columns) ) {
+                    var colData = this.data[dataKey].columns[colKey];
+                    template += '<div class="col-xs-'+colData.class.xs+' col-sm-'+colData.class.sm+' col-md-'+colData.class.md+' sectionColumn">'
+                        +'<div class="row" style="margin-left : 0; margin-right : 0"><div class="col-xs-12 text-center">Column '+colKey+'</div>'
+                        
+                        for(var ss of ['xs','sm', 'md']) {
+                            template+='<div class="col-xs-12 col-md-4"><div class="form-group">'
+                            +'<select onchange="gridManager.changeColSize(this.value, \''+ss+'\', '+dataKey+', '+colKey+')" class="form-control form-control-sm">';
+                            for(var i = 1; i<=12; i++) {
+                                template+= '<option '+(i == colData.class[ss] ? 'selected="selected"' : '')+' value="'+i+'">'+ss+' '+i+'</option>';
+                            }
+                            template+='</select></div></div>';
+                        }
+
+                        template+='<div class="col-xs-12 text-center">'
+                        +'<button type="button" onclick="gridManager.addRow('+dataKey+', '+colKey+')" class="btn btn-sm btn-link">{{text_add_row}}</button>'
+                        +'<button type="button" onclick="gridManager.registerCategory('+dataKey+', '+colKey+')" class="btn btn-sm btn-link">{{text_addCategory}}</button>'
+                        +'<button type="button" onclick="gridManager.removeCol('+dataKey+', '+colKey+')" class="btn btn-sm btn-link">{{text_removeCol}}</button>'
+                        +'</div>'
+                        +'<div class="col-xs-12 sectionColumnRows">';
+                        
+
+                        if(colData.type == 'category') {
+
+                              for(var c of Object.keys(colData.categories)) {
+                                var ct = colData.categories[c];
+
+                                template += '<p>'+ct.label+'</p>'
+                              }
+
+                        }
+                        
+                        if(colData.type == 'row') {
+                        
+                            for( var subRowKey of Object.keys(colData.rows) ) {
+
+                                let subRow = colData.rows[subRowKey];
+
+                                template += '<div class="row" style="margin-left : 0; margin-right:0; margin-bottom : 20px; padding : 20px; border : 1px solid #e2e2e2;">'
+
+                                +'<div class="col-xs-12">'
+                                    +'<div class="pull-right">'
+                                    +'<a class="btn btn-sm btn-warning" onclick="gridManager.addCol('+dataKey+', '+colKey+', '+subRowKey+')">{{text_addCol}}</a>'
+                                    +'<a class="btn btn-sm btn-danger" onclick="gridManager.removeRow('+dataKey+', '+colKey+', '+subRowKey+')">{{text_removeSection}}</a>'
+                                    +'</div>'
+                                +'</div>';
+
+                                for( var subColKey of Object.keys(subRow.columns) ) {
+
+                                  template+= '<div class="subcolumns col-xs-'+subRow.columns[subColKey].class.xs+' col-sm-'+subRow.columns[subColKey].class.sm+' col-md-'+subRow.columns[subColKey].class.md+'">';
+                                  
+                                  template+= '<div class="row" style="margin-left : 0; margin-right : 0">';
+                                  
+                                  for(var ss of ['xs','sm', 'md']) {
+                                      template+='<div class="col-xs-12 col-md-4"><div class="form-group">'
+                                      +'<select onchange="gridManager.changeColSize(this.value, \''+ss+'\', '+dataKey+', '+colKey+', '+subRowKey+', '+subColKey+')" class="form-control form-control-sm">';
+                                      for(var i = 1; i<=12; i++) {
+                                          template+= '<option '+(i == subRow.columns[subColKey].class[ss] ? 'selected="selected"' : '')+' value="'+i+'">'+ss+' '+i+'</option>';
+                                      }
+                                      template+='</select></div></div>';
+                                  }
+                                  template+= '<div>'
+                                    +'<a class="btn btn-sm btn-warning" onclick="gridManager.registerCategory('+dataKey+', '+colKey+', '+subRowKey+', '+subColKey+')">{{text_addCategory}}</a>'
+                                    +'<a class="btn btn-sm btn-danger" onclick="gridManager.removeCol('+dataKey+', '+colKey+', '+subRowKey+', '+subColKey+')">{{text_removeSection}}</a>'
+                                  +'</div>';
+                                  template+= '</div>';
+
+                                  for(var c of Object.keys(subRow.columns[subColKey].categories)) {
+                                    var ct = subRow.columns[subColKey].categories[c];
+
+                                    template += '<p>'+ct.label+'</p>'
+                                  }
+
+                                  template+= '</div>';
+
+                                }
+
+                                template +='</div>';
+                            }
+
+                        }
+
+                        
+                        template +='</div></div><!-- responsive settings --></div>';
+                }
+
+                template+= '</div></div></div>';
+
+
+                this.dom.append(template);
+            }
+        }
+
+        submit() {
+          this.post.name = $('#input-name').val().trim();
+          this.post.status = $('#input-status').val();
+          this.post.show_names = $('#input-showNames').val();
+          this.post.config= this.data;
+
+
+          if(this.post.title !== '') {
+            $.post('{{action}}', this.post, function(result) {
+              window.location = '{{redirect}}';
+            });
+          }else{
+            alert("{{error_name}}");
+          }
+        } 
+    }
+
+    let gridManager = new grid();
+
+
+
+  $('input[name=\'category\']').autocomplete({
+	  'source': function(request, response) {
+		  $.ajax({
+			  url: 'index.php?route=catalog/category/autocomplete&user_token={{ user_token }}&filter_name=' + encodeURIComponent(request),
+			  dataType: 'json',
+			  success: function(json) {
+				  response($.map(json, function(item) {
+					  return {
+						  label: item['name'],
+						  value: item['category_id']
+					  }
+				  }));
+			  }
+		  });
+	  },
+	  'select': function(item) {
+
+      gridManager.setCategory(item);
+
+		  $('input[name=\'category\']').val('');
+
+		  $('#product-category' + item['value']).remove();
+
+		  $('#product-category').append('<div id="product-category' + item['value'] + '" data-category="'+item['value']+'"><i class="fa fa-minus-circle"></i> ' + item['label'] + '</div>');
+	  }
+  });
+
+   $('#product-category').delegate('.fa-minus-circle', 'click', function() {
+    var category_id = $(this).parent().data('category');
+    gridManager.removeCategory(category_id);
+	  $(this).parent().remove();
+  });
+  
+</script>
+
+<style>
+    .sectionColumn {
+        border : 1px solid #e2e2e2;
+        min-height : 200px;
+        margin-bottom : 20px;
+        background : #fbfbfb;
+    }
+
+    .subcolumns {
+      margin-bottom : 10px;
+      border : 1px solid #e2e2e2;
+    }
+</style>

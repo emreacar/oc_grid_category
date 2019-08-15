@@ -1,0 +1,39 @@
+.grid_category_header {
+    margin-top : 15px;
+    margin-bottom : 15px;
+}
+
+.grid_category_header h2 {
+   margin : 0; padding : 0; color: #757575;
+}
+
+
+.slide-category { 
+    margin-bottom: 1.3rem;
+}
+
+.slide-category div {
+    position: relative;
+}
+
+.slide-category div a {
+    display: inline-block;
+}
+
+.slide-category span {
+    color: #ffffff;
+    font-weight: 400;
+    text-shadow: -2px 2px 2px #0000009e;
+    padding: 10px;
+    bottom: 0;
+    font-size: 20px;
+    display: block;
+    position: absolute;
+    background: rgba(0,0,0,0);
+    transition : all 0.3s;
+}
+
+.slide-category:hover span {
+    background: rgba(0,0,0,1);
+    transition : all 0.3s;
+}
